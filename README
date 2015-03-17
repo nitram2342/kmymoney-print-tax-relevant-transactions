@@ -1,0 +1,35 @@
+This is a helper script for generating a list of transactions for the tax
+declaration.
+
+Background
+-----------
+
+Each year, I bring a list of invoices and all kinds of supporting documents to
+my tax accountant. To not forget anything important, I make my book keeping with
+KMyMoney, where I import bank transactions via FinTS (formerly HBCI) and via
+manual edits (for things I payed in cash and which are tax relevant). All
+transactions are categorized.
+
+I pre-sort all documents according to the categories. Each category (or a
+set of sub-categories) is seperated with a seperator sheet. This is a
+landscape-oriented sheet.
+
+
+This tool
+----------
+
+This helper script extracts all transactions from a KMyMoney file for a certain
+year and reports them in a PDF file. In addition, this PDF file contains the
+seperator sheets, that are folded at a marker line.
+
+
+Author
+-------
+
+Martin Schobert <martin@weltregierung.de>
+
+License
+--------
+
+I don't care.
+
