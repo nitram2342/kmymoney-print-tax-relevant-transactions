@@ -148,13 +148,13 @@ class AccountSet:
     def get(self, acc):
         return self.accounts[acc]
 
-    def print_tax_relevant_accounts(self, account_visitor_fnk, after_account_visitor_fnk, transaction_visitor_fnk, year):
+    def print_tax_relevant_accounts(self, account_visitor_fnk, after_account_visitor_fnk, transaction_visitor_fnk, year, print_empty_categories=False):
 #        print "tax relevant accounts"
 #        print "-----------------------"
 
         for a in (sorted(self.accounts, key = lambda aid: self.accounts[aid].name)):
             acc = self.accounts[a]
-            if acc.is_tax_relevant() and acc.has_transactions():
+            if acc.is_tax_relevant() and (print_empty_categories or acc.has_transactions()):
                 print acc.get_id() + " " + acc.get_name().encode('utf-8')
                 account_visitor_fnk(acc)
  #               print "--------------------------------------------------------"
@@ -266,8 +266,8 @@ class Report:
     def _newpage(self, acc = None):
         self.elements.append(PageBreak())
         
-    def render_seperators(self, accounts, year):
-        accounts.print_tax_relevant_accounts(self.report_account_title, self._folding_line, None, year)
+    def render_seperators(self, accounts, year, print_empty_categories):
+        accounts.print_tax_relevant_accounts(self.report_account_title, self._folding_line, None, year, print_empty_categories)
         
 
 
@@ -376,7 +376,7 @@ def get_transactions(xml_root, accounts, year):
                     acc.add_transaction(trans)
 
 
-def main(filename, year, outfile,lang):
+def main(filename, year, outfile,lang, print_empty_categories):
     xml_root = get_xml(filename)
 
     accounts = get_tax_accounts(xml_root)
@@ -385,8 +385,8 @@ def main(filename, year, outfile,lang):
 
     report = Report(outfile, lang)
 
-    report.render_seperators(accounts, year)
-    accounts.print_tax_relevant_accounts(report.report_account, report.after_account, report.report_transaction, year)
+    report.render_seperators(accounts, year, print_empty_categories)
+    accounts.print_tax_relevant_accounts(report.report_account, report.after_account, report.report_transaction, year, print_empty_categories)
     report.render_transactions()
 
 if __name__ == "__main__":
@@ -399,6 +399,7 @@ if __name__ == "__main__":
     parser.add_option("--year", dest="year", help="Render transactions for a year", type='int', default = datetime.date.today().year - 1)
     parser.add_option("--out", dest="outfile", help="Report file name")
     parser.add_option("--lang", dest="language", help="Language (%s)" % (",".join(lang.keys())), default='de')
+    parser.add_option("--print-empty-categories", dest="print_empty_categories", action='store_true', help="print categories without transactions")
 
     (options, args) = parser.parse_args()
 
@@ -413,7 +414,7 @@ if __name__ == "__main__":
         sys.exit()
 
     if options.file:
-        main(options.file, options.year, options.outfile, options.language)
+        main(options.file, options.year, options.outfile, options.language, options.print_empty_categories)
     else:
         print "Please, specify a KMyMoney file."
 
