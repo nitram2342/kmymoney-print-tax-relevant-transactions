@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 #
 # This is a helper script for generating a list of transactions for the tax
 # declaration.
@@ -260,7 +260,7 @@ class Report:
 
     def _folding_line(self, acc = None):
         self.elements.append(Spacer(1, 22.5 * cm))
-        self.elements.append(Paragraph("<para align=left><u>" + ("&nbsp;" * 3) + "</u></para>", self.styles['Normal']))
+        self.elements.append(Paragraph("<para align=left><u>" + ("&nbsp;" * 3) + "_______________________________________________________________________________</u></para>", self.styles['Normal']))
         self._newpage()
 
     def _newpage(self, acc = None):
@@ -276,7 +276,17 @@ def get_xml(zf):
     file_content = f.read()
     f.close()
 
-    return ET.fromstring(file_content)
+    try:
+        parsed_doc = ET.fromstring(file_content)
+        return parsed_doc
+        
+    except ET.ParseError as e:
+        pos = e.position
+        print(e)
+        print("+ XML parse error in line %d, column %d:" % (pos[0], pos[1]))
+        print(file_content.splitlines()[pos[0]])
+
+    return None
 
 def get_tax_accounts(xml_root):
 
@@ -335,6 +345,15 @@ def check_sub_accounts(xml_root, accounts):
 def remove_newlines(str):
     return str.replace('\n', '')
 
+def lookup_payee(xml_root, payee_id):
+    e = xml_root.find("./PAYEES/PAYEE[@id=\"%s\"]" % (payee_id))
+    if e == None:
+        return None
+    else:
+        return e.attrib['name']
+    
+        
+    
 def get_transactions(xml_root, accounts, year):
     for t in xml_root.findall("./TRANSACTIONS/TRANSACTION"):
         postdate = t.attrib['postdate']
@@ -345,19 +364,28 @@ def get_transactions(xml_root, accounts, year):
         if postdate_dt.year != year:
             continue
 
+        payee = ""
+        
         # split bookings
         for s in t.findall(".//SPLIT"):
             val = s.attrib['value']
             acc_id = s.attrib['account']
             acc = accounts.get(acc_id)
             acc_name = acc.get_name().encode('utf-8')
-
+            if payee == "":
+                payee = lookup_payee(xml_root, s.attrib['payee'])
+                if payee:
+                    payee += ":\n"
+                else:
+                    payee = ""
+            
             if s.attrib['memo']:
-                mem = remove_newlines(s.attrib['memo'])
+                mem = payee + remove_newlines(s.attrib['memo'])
             else:
-                mem = memo
+                mem = payee + memo
 
-
+            
+            
             # is it an expese or income account
             if acc.is_tax_relevant():
 
@@ -378,7 +406,10 @@ def get_transactions(xml_root, accounts, year):
 
 def main(filename, year, outfile,lang, print_empty_categories):
     xml_root = get_xml(filename)
-
+    if xml_root == None:
+        print "+ Error: can't parse XML"
+        return
+    
     accounts = get_tax_accounts(xml_root)
     accounts.reset_names()
     get_transactions(xml_root, accounts, year)
